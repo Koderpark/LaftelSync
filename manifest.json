@@ -10,10 +10,12 @@
         "default_popup":"index.html"
     },
     "permissions":[
-        "activeTab",
+        "declarativeContent",
         "scripting",
+        "activeTab",
         "tabs"
     ],
+    "host_permissions": ["<all_urls>"],
     "background": {
         "service_worker" : "js/background.js"
     }
