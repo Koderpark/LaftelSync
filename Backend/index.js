@@ -33,33 +33,78 @@ const webSocketServer = new wsModule.Server(
     }
 );
 
+// 클라이언트에 부여되는 고유 ID 값 관련 함수
+let clientlist = {};
+
+function GenerateId(ws){ // 방 id의 생성 및 host 웹소켓 등록
+    while(true){
+        let tmpnum = Math.floor(Math.random()*89999)+10000;
+        console.log(tmpnum);
+        if(!clientlist[tmpnum.toString()]){
+            clientlist[tmpnum.toString()] = {"host": ws, "peer": []};
+            return tmpnum;
+        }
+    }
+}
+
+function FreeId(id){ // 호스트가 방을 종료함 -> 방 제거
+    delete clientlist[id];
+}
+
+function AddPeerToId(id,ws){ // 방에 참가자 추가
+    if(!clientlist[id.toString()]){
+        let tmp = clientlist[id.toString()].peer;
+        tmp.push(ws);
+    }
+}
 
 // connection(클라이언트 연결) 이벤트 처리
-webSocketServer.on('connection', (ws, request)=>{
+webSocketServer.on('connection', (ws)=>{
+    console.log(`새로운 클라이언트 접속`);
 
-    // 1) 연결 클라이언트 IP 취득
-    const ip = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
-    
-    console.log(`새로운 클라이언트[${ip}] 접속`);
-    
     // 2) 클라이언트에게 메시지 전송
-    if(ws.readyState === ws.OPEN){ // 연결 여부 체크
-        ws.send(`클라이언트[${ip}] 접속을 환영합니다 from 서버`); // 데이터 전송
-    }
-    
+    /*if(ws.readyState === ws.OPEN){ // 연결 여부 체크
+        ws.id = GenerateId();
+        //ws.send(`클라이언트[${ip}] 접속을 환영합니다 from 서버`); // 데이터 전송
+        ws.send(`당신의 ID는 ${ws.id} 입니다.`);
+
+        console.log(clientlist);
+    }*/
+
     // 3) 클라이언트로부터 메시지 수신 이벤트 처리
-    ws.on('message', (msg)=>{
-        console.log(`클라이언트[${ip}]에게 수신한 메시지 : ${msg}`);
-        ws.send('메시지 잘 받았습니다! from 서버')
+    ws.on("message", (msg)=>{
+        switch(msg.toString()){
+            case "MakePartyId" : {
+                ws.id = GenerateId(ws);
+                console.log(clientlist);
+                ws.send(JSON.stringify({"status": "success", "log": {"partyid" : ws.id}}));
+                break;
+            }
+            case "JoinPartyId" : {
+                ws.id = GenerateId(ws);
+                console.log(clientlist);
+                ws.send(JSON.stringify({"status": "success", "log": {"partyid" : ws.id}}));
+                break;
+            }
+            default : {
+                ws.send(JSON.stringify({"status": "failed", "log": "UnknownCommand"}));
+                break;
+            }
+        }
+        console.log(`클라이언트에게 수신한 메시지 : ${msg}`);
+        //ws.send('메시지 잘 받았습니다! from 서버');
+        
     })
     
     // 4) 에러 처러
     ws.on('error', (error)=>{
-        console.log(`클라이언트[${ip}] 연결 에러발생 : ${error}`);
+        console.log(`클라이언트 연결 에러발생 : ${error}`);
+        FreeId(ws.id);
     })
     
     // 5) 연결 종료 이벤트 처리
     ws.on('close', ()=>{
-        console.log(`클라이언트[${ip}] 웹소켓 연결 종료`);
+        console.log(`클라이언트 웹소켓 연결 종료`);
+        FreeId(ws.id);
     })
 });

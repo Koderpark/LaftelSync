@@ -14,7 +14,7 @@
 </body>
 <script>
     // 1. 웹소켓 클라이언트 객체 생성
-    const webSocket = new WebSocket("ws://192.168.0.2:21100");
+    const webSocket = new WebSocket("ws://116.127.164.3:21100");
 
 
     // 2. 웹소켓 이벤트 처리
@@ -45,9 +45,7 @@
     document.getElementById("btn_send").onclick = function(){
 
         if(webSocket.readyState === webSocket.OPEN){ // 연결 상태 확인
-            webSocket.send(`증가하는 숫자를 보냅니다 => ${count}`); // 웹소켓 서버에게 메시지 전송
-            count++; // 보낼때마다 숫자를 1씩 증가
-
+            webSocket.send("MakingParty");
         }else{
             alert("연결된 웹소켓 서버가 없습니다.");
         }

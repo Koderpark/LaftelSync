@@ -7,7 +7,7 @@
     "action":{
         "default_title": "testing",
         "default_icon":"icon.png",
-        "default_popup":"index.html"
+        "default_popup":"page/index.html"
     },
     "permissions":[
         "declarativeContent",
