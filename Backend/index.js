@@ -1,47 +1,36 @@
 // ********* app.js 파일
 
+// ws -> socket.io로 교체를해보아요 ㅁㄴㅇㄹ
+
+
 // 디렉터리 관리를 위해 path 모듈 사용
 const path = require("path");
+const { Socket } = require("socket.io");
 
 
 // HTTP 서버(express) 생성 및 구동
-
-// 1. express 객체 생성
-const express = require('express');
-const app = express();
+const app = require("express")();
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
 
 // 2. "/" 경로 라우팅 처리
-app.use("/", (req, res)=>{
-    res.sendFile(path.join(__dirname, './test.html')); // index.html 파일 응답
-})
+app.use("/", (req, res)=>{ res.sendFile(path.join(__dirname, './test.html')); });
 
-const HTTPServer = app.listen(8081, ()=>{
-    console.log("Server is open at port:8081");
-});
+const HTTPServer = http.listen(8081, ()=>{ console.log("Server is open at port:8081"); });
 
 
-// WebSocekt 서버(ws) 생성 및 구동
 
-// 1. ws 모듈 취득
-const wsModule = require('ws');
-
-// 2. WebSocket 서버 생성/구동
-const webSocketServer = new wsModule.Server( 
-    {
-        server: HTTPServer, // WebSocket서버에 연결할 HTTP서버를 지정한다.
-        //port: 30002 // WebSocket연결에 사용할 port를 지정한다(생략시, http서버와 동일한 port 공유 사용)
-    }
-);
 
 // 클라이언트에 부여되는 고유 ID 값 관련 함수
-let clientlist = {};
+let clientlist = {};  // 방번호 중복 제거용
+let roomList = [];    // ㄹㅇ 방번호용
 
-function GenerateId(ws){ // 방 id의 생성 및 host 웹소켓 등록
+function GenerateId(){ // 방 id의 생성
     while(true){
         let tmpnum = Math.floor(Math.random()*89999)+10000;
         console.log(tmpnum);
         if(!clientlist[tmpnum.toString()]){
-            clientlist[tmpnum.toString()] = {"host": ws, "peer": []};
+            clientlist[tmpnum.toString()] = true;
             return tmpnum;
         }
     }
@@ -51,16 +40,36 @@ function FreeId(id){ // 호스트가 방을 종료함 -> 방 제거
     delete clientlist[id];
 }
 
-function AddPeerToId(id,ws){ // 방에 참가자 추가
-    if(!clientlist[id.toString()]){
-        let tmp = clientlist[id.toString()].peer;
-        tmp.push(ws);
-    }
-}
+
+io.on("connection", (socket) => {
+    console.log("새로운 클라이언트 접속");
+
+    socket.on('MakePartyId', (data) => {
+        let roomCode = () => {
+            while(true){
+                let tmpcode = Math.floor(Math.random()*89999)+10000;
+                if(!roomList.includes(tmpcode)){
+                    return tmpcode;
+                }
+            }
+        }
+
+        roomList.push(roomCode);
+        socket.join(roomCode);
+
+        io.emit("")
+        console.log(roomCode + " 번호를 가진 방 생성.");
+    });
+
+    socket.on("JoinPartyId", (data) => {
+        if(!roomList.includes(data.roomCode)){
+            
+        } 
+    });
+})
 
 // connection(클라이언트 연결) 이벤트 처리
 webSocketServer.on('connection', (ws)=>{
-    console.log(`새로운 클라이언트 접속`);
 
     // 2) 클라이언트에게 메시지 전송
     /*if(ws.readyState === ws.OPEN){ // 연결 여부 체크
