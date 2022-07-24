@@ -1,10 +1,10 @@
 document.getElementById('joinbtn').onclick = () => {
-    let idform = document.getElementById('idform').innerText;
+    let idform = document.getElementById('idform').value;
     chrome.runtime.sendMessage({
-        message: 'TEST',
+        message: 'joinroom',
         id : idform
     }, function(ret){
-        //location.href = '../page/make.html?id='+ret;
-        alert(JSON.stringify(ret));
+        //alert(JSON.stringify(ret));
+        self.close();
     });
 }
