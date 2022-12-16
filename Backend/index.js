@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
      */
     socket.on('propagate', (data) => {
         console.log("propagate 명령 수행.");
+        console.log(data);
         socket.to("USER"+data.roomid).emit("modify", data.vid);
     });
 
@@ -69,8 +70,7 @@ io.on("connection", (socket) => {
             socket.join("USER"+data);
             console.log(data + " 번호를 가진 방에 유저 접속");
 
-            //Todo -> Parse
-            socket.to("HOST"+data).emit("parse",data);
+            socket.to("HOST"+data).emit("parse");
         }
     });
 
