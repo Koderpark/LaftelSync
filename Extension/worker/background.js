@@ -124,13 +124,13 @@ async function parse() {
     }
   });
 
-  chrome.scripting.executeScript({
+  /*chrome.scripting.executeScript({
     target: {tabId: currtab[0].id },
     args: [res],
     func: (arg) => {
       alert(JSON.stringify(arg));
     }
-  });
+  });*/
   return res;
 }
 
@@ -143,14 +143,23 @@ async function parse() {
  */
 socket.on('modify', async (data) => {
   const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.scripting.executeScript({
-    target: { tabId: currtab[0].id },
-    func: () => {
-      alert("MODIFY 명령 수행.");
-    }
+
+  chrome.tabs.update(currtab[0].id, { url: data.link }).then(() => {
+    setTimeout(() => {
+      chrome.scripting.executeScript({
+        target: { tabId: currtab[0].id },
+        args: [data.time, data.ispause],
+        func: (time, ispause) => {
+          let videotag = document.getElementsByTagName('video')[0];
+          //alert(JSON.stringify({time,ispause}));
+          //alert(videotag.currentTime);
+          videotag.currentTime = time+5;
+        }
+      });
+    }, 5000);
   });
-  chrome.tabs.update(currtab[0].id, { url: data.link });
-  // ToDo : 영상 일시정지 및 재생시간 조정.
+  // ToDo : 최초실행(링크변경) 뿐만아니라 중간변경도 가능하게 할것.
+  // ToDo : 영상 일시정지 / 재생 기능 제작.
 });
 
 /*
@@ -169,19 +178,18 @@ socket.on('destroy', async () => {
 });
 
 socket.on('parse', async () => {
-  //Todo - 파싱 제대로 안됨.
   const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
 
   parse().then((arg) => {
     var ret = {roomid: Id, vid: arg[0].result};
     
-    chrome.scripting.executeScript({
+    /*chrome.scripting.executeScript({
       target: { tabId: currtab[0].id },
       args: [ret],
       func: (ret) => {
         alert(JSON.stringify(ret));
       }
-    });
+    });*/
     
     socket.emit('propagate', ret);
   })
