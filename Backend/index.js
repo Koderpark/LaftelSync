@@ -34,7 +34,7 @@ io.on("connection", (socket) => {
      */
     socket.on('propagate', (data) => {
         console.log("propagate 명령 수행.");
-        console.log(data);
+        console.log(JSON.stringify(data));
         socket.to("USER"+data.roomid).emit("modify", data.vid);
     });
 
