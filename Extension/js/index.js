@@ -29,5 +29,6 @@ async function getMyState(){
 getMyState();
 
 
-// 플러그인 유지를 위한 주기적 통신 //
+
+// 플러그인 백그라운드 유지 //
 (function connect(){chrome.runtime.connect({name: 'keepAlive'}).onDisconnect.addListener(connect);})();

@@ -1,26 +1,20 @@
-////// Init Server //////
-
+// require
 const path = require("path");
 const { Socket } = require("socket.io");
-
 const app = require("express")();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
+// 서버생성
 app.use("/", (req, res)=>{ res.sendFile(path.join(__dirname, './test.html')); });
-
 const HTTPServer = http.listen(8081, ()=>{ console.log("Server is open at port:8081"); });
 
+let roomList = []; // 열린 방 목록
 
-
-let roomList = []; // 방번호 중복제거용
-
-function GenerateId(){
+function GenerateId(){ // 중복없는 방번호 생성함수.
     while(true){
         let tmpcode = Math.floor(Math.random()*89999)+10000;
-        if(!roomList.includes(tmpcode)){
-            return tmpcode;
-        }
+        if(!roomList.includes(tmpcode)) return tmpcode;
     }
 }
 
@@ -47,10 +41,10 @@ io.on("connection", (socket) => {
     });
 
     /*
-     * hostroom - Host가 방을 열기를 원함
+     * host - Host가 방을 열기를 원함
      * 결과로써 방을 생성하고 Host에게 방번호 전달
      */
-    socket.on('hostroom', () => {
+    socket.on('host', () => { // 방 생성후 setRoomCode 이벤트 호출.
         let roomCode = GenerateId();
 
         roomList.push(roomCode);
@@ -65,63 +59,22 @@ io.on("connection", (socket) => {
      * joinroom - User가 방에 들어오기를 원함
      * 결과로써 방에 접속함
      */
-    socket.on('joinroom', (data) => {
+    socket.on('joinroom', (data) => { // 유저를 방에 넣고 parse 이벤트 호출
         if(roomList.includes(parseInt(data))){
             socket.join("USER"+data);
-            console.log(data + " 번호를 가진 방에 유저 접속");
-
+            //console.log(data + " 번호를 가진 방에 유저 접속");
             socket.to("HOST"+data).emit("parse");
         }
     });
 
-    /*
-     * disconnecting - Host / User가 모종의 이유로 퇴장.
-     * Host일때는 방 폭파 이벤트 destroy 를 User에게 전송
-     */
-    socket.on('disconnecting', () => {
-
+    socket.on('disconnecting', () => { // 누군가가 퇴장. HOST일경우 USER에게 closed 이벤트호출
         let roomarr = [...(socket.rooms)];
         let roomcode = roomarr.filter(s => s.includes("HOST"));
-
         if(roomcode.length != 0){
             let id = roomcode[0].replace("HOST", "");
-            console.log(id + " 번호를 가진 방이 닫혔습니다."); // 파괴된 방 번호
-
-            socket.to("USER"+id).emit("destroy");
-
+            //console.log(id + " 번호를 가진 방이 닫혔습니다."); // 파괴된 방 번호
+            socket.to("USER"+id).emit("closed");
             roomList.pop(id);
         }
     });
 });
-
-/*
-webSocketServer.on('connection', (ws)=>{
-
-    // 2) 클라이언트에게 메시지 전송
-    /*if(ws.readyState === ws.OPEN){ // 연결 여부 체크
-        ws.id = GenerateId();
-        //ws.send(`클라이언트[${ip}] 접속을 환영합니다 from 서버`); // 데이터 전송
-        ws.send(`당신의 ID는 ${ws.id} 입니다.`);
-
-        console.log(clientlist);
-    }
-
-    // 3) 클라이언트로부터 메시지 수신 이벤트 처리
-    ws.on("message", (msg)=>{
-        switch(msg.toString()){
-            case "JoinPartyId" : {
-                ws.id = GenerateId(ws);
-                console.log(clientlist);
-                ws.send(JSON.stringify({"status": "success", "log": {"partyid" : ws.id}}));
-                break;
-            }
-            default : {
-                ws.send(JSON.stringify({"status": "failed", "log": "UnknownCommand"}));
-                break;
-            }
-        }
-        console.log(`클라이언트에게 수신한 메시지 : ${msg}`);
-        //ws.send('메시지 잘 받았습니다! from 서버');
-        
-    })
-});*/
