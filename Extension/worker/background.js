@@ -110,6 +110,8 @@ async function setvideo(time, ispause){
   });
 }
 
+
+
 socket.on('modify', async (data) => {
   const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -117,20 +119,28 @@ socket.on('modify', async (data) => {
     setvideo(data.time, data.ispause);
   }
   else{
-    chrome.tabs.update(currtab[0].id, { url: data.link }).then(() => {
-      //setvideo(data.time, data.ispause);
-      chrome.scripting.executeScript({
-        target: { tabId: currtab[0].id },
-        func: () => {
-          let videotag = document.getElementsByTagName('video')[0];
-          
+    chrome.tabs.update(currtab[0].id, { url: data.link, active: true}, (currtab) => {
+      //ToDo - 업데이트 이후 페이지 로딩까지 기다리는 이벤트핸들러 제작.
+
+      var listener = (tabId, changeInfo, tab) => {
+        if(tabId = currtab.id && changeInfo.status === 'complete'){
+          chrome.tabs.onUpdated.removeListener(listener);
+          clientAlert("PAGE LOADED DONE");
+          /*chrome.scripting.executeScript({
+            target: { tabId: currtab[0].id },
+            func: () => {
+              let videotag = document.getElementsByTagName('video')[0];
+              alert(JSON.stringify(videotag));
+              videotag.onloadeddata = () => {
+                //alert("ㅎㅇ요");
+              }
+            }
+          });*/
         }
-      });
+      }
+      chrome.tabs.onUpdate.addListener(listener);
     });
   }
-  // ToDo : 링크 변경 -> 백엔드에 싱크요청 -> 영상 시간대 변경 으로 기능분리할것.
-  // ToDo : 최초실행(링크변경) 뿐만아니라 중간변경도 가능하게 할것.
-  // ToDo : 영상 일시정지 / 재생 기능 제작.
 });
 
 
@@ -139,78 +149,56 @@ socket.on('modify', async (data) => {
  * ToDo : 기존 라프텔 재생중이던 창 꺼버리면 될듯?
  */
 socket.on('closed', async () => {
-  clientAlert('호스트와의 연결이 끊겼습니다.')
+  clientAlert('호스트와의 연결이 끊겼습니다.');
 });
 
 socket.on('parse', async () => {
   const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-
   parse().then((arg) => {
     var ret = {roomid: Id, vid: arg[0].result};
-    
-    /*chrome.scripting.executeScript({
-      target: { tabId: currtab[0].id },
-      args: [ret],
-      func: (ret) => {
-        alert(JSON.stringify(ret));
-      }
-    });*/
-    
     socket.emit('propagate', ret);
   })
 });
 
 
-chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  fromclient(msg,sendResponse);
+  return true;
+});
 
+
+async function fromclient(msg, sendResponse){
   if (msg.message == 'hostroom') {
-    host().then((ret) => {
-      sendResponse({ message: ret });
-    });
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    let ret;
+    if ((currtab[0].url).includes('laftel.net/player')) {
+      try {
+        socket.emit("host");
+        ret = {
+          "status": "success", "log": await new Promise(resolve => {
+            socket.on('setRoomCode', (data) => {Id=data; resolve(data);});
+          })
+        };
+      }
+      catch (e) {
+        clientAlert('서버와의 통신에 실패했습니다\n잠시뒤 시도해주세요');
+        ret =  { "status": "failed", "log": "ConnectionFailed" };
+      }
+    }
+    else {
+      clientAlert('애니메이션이 재생중일때만 파티를 만들수 있습니다');
+      ret =  { "status": "failed", "log": "NotWatchingVideo" };
+    }
+    sendResponse({ message: ret });
   }
 
   if (msg.message == 'joinroom') {
-    join(msg.id).then((ret) => {
-      sendResponse({ message: ret });
-    });
+    Id = 0;
+    socket.emit("join", msg.id);
+    sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
   }
 
   if (msg.message == 'getMyState') {
     sendResponse({ message: Id });
   }
-  return true;
-});
-
-async function host() {
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  if ((currtab[0].url).includes('laftel.net/player')) {
-    try {
-      socket.emit("host");
-
-      return {
-        "status": "success", "log": await new Promise(resolve => {
-          socket.on('setRoomCode', (data) => {
-            Id = data;
-            resolve(data);
-          });
-        })
-      };
-    }
-    catch (e) {
-      clientAlert('서버와의 통신에 실패했습니다\n잠시뒤 시도해주세요');
-      return { "status": "failed", "log": "ConnectionFailed" };
-    }
-  }
-  else {
-    clientAlert('애니메이션이 재생중일때만 파티를 만들수 있습니다');
-    return { "status": "failed", "log": "NotWatchingVideo" };
-  }
-}
-
-
-async function join(JoinId) {
-  Id = 0;
-  socket.emit("join", JoinId);
-  // Todo - 결과 받아오는파트 필요할듯?
 }

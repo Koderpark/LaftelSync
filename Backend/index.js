@@ -21,7 +21,6 @@ function GenerateId(){ // 중복없는 방번호 생성함수.
 io.on("connection", (socket) => {
     /*
      * propagate - Host에서 User으로 영상정보를 전송함.
-     * roomid : 영상정보를 전달하고자 하는 방번호
      * vid/time : 영상 현재 재생시간
      * vid/link : 영상 현재 링크
      * vid/ispause : 일시정지 여부 (T/F)
@@ -34,7 +33,6 @@ io.on("connection", (socket) => {
 
     /*
      * query - User가 Host에게 영상정보를 물어봄.
-     * roomid : Host측이 연 방의 방번호.
      */
     socket.on('query', (data) => {
         socket.to("HOST"+data.roomid).emit("parse");
@@ -50,19 +48,15 @@ io.on("connection", (socket) => {
         roomList.push(roomCode);
         socket.join("HOST"+roomCode);
         
-        socket.emit("setcode", roomCode);
-        console.log(roomCode + " 번호를 가진 방 생성.");
+        socket.emit("setRoomCode", roomCode);
+        console.log(roomCode + " 방 생성.");
         console.log(roomList);
     });
 
-    /*
-     * joinroom - User가 방에 들어오기를 원함
-     * 결과로써 방에 접속함
-     */
-    socket.on('joinroom', (data) => { // 유저를 방에 넣고 parse 이벤트 호출
+    socket.on('join', (data) => { // 유저를 방에 넣고 parse 이벤트 호출
         if(roomList.includes(parseInt(data))){
             socket.join("USER"+data);
-            //console.log(data + " 번호를 가진 방에 유저 접속");
+            console.log(data + " 방에 유저 접속");
             socket.to("HOST"+data).emit("parse");
         }
     });
@@ -72,7 +66,7 @@ io.on("connection", (socket) => {
         let roomcode = roomarr.filter(s => s.includes("HOST"));
         if(roomcode.length != 0){
             let id = roomcode[0].replace("HOST", "");
-            //console.log(id + " 번호를 가진 방이 닫혔습니다."); // 파괴된 방 번호
+            console.log(id + " 번호를 가진 방이 닫혔습니다."); // 파괴된 방 번호
             socket.to("USER"+id).emit("closed");
             roomList.pop(id);
         }
