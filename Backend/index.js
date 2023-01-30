@@ -1,4 +1,5 @@
 // require
+const e = require("express");
 const path = require("path");
 const { Socket } = require("socket.io");
 const app = require("express")();
@@ -18,7 +19,16 @@ function GenerateId(){ // 중복없는 방번호 생성함수.
     }
 }
 
+
 io.on("connection", (socket) => {
+    // %임시% 매 초 parse 시키는 부분 //
+    setInterval(() => {
+        roomList.forEach(e => {
+            socket.to("HOST"+e).emit("parse");
+        });
+    }, 10000);
+
+
     /*
      * propagate - Host에서 User으로 영상정보를 전송함.
      * vid/time : 영상 현재 재생시간

@@ -1,4 +1,8 @@
 importScripts('socket.io.js');
+const socket = io('http://koder.myds.me:20020', {
+  path: '/socket.io',
+  transports: ['websocket']
+});
 
 /*
  * Id - 접속 클라이언트가 가지는 고유값
@@ -7,11 +11,6 @@ importScripts('socket.io.js');
  * 다섯자리 숫자인 경우 : Host 역할
  */
 let Id = -1;
-const socket = io('http://koder.myds.me:20020', {
-  path: '/socket.io',
-  transports: ['websocket']
-});
-
 
 
 // 플러그인 백그라운드 유지 //
@@ -72,20 +71,21 @@ async function clientAlert(msg){ // 메시지 출력.
  */
 async function parse() {
   const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  var res = await chrome.scripting.executeScript({
-    target: { tabId: currtab[0].id },
-    args: [currtab[0].url],
-    func: (currlink) => {
-      let videotag = document.getElementsByTagName('video')[0];
-      return {
-        time: videotag.currentTime,
-        ispause: videotag.paused,
-        link: currlink
-      };
-    }
-  });
-  return res;
+  if(currtab[0].url.includes("laftel")){
+    var res = await chrome.scripting.executeScript({
+      target: { tabId: currtab[0].id },
+      args: [currtab[0].url],
+      func: (currlink) => {
+        let videotag = document.getElementsByTagName('video')[0];
+        return {
+          time: videotag.currentTime,
+          ispause: videotag.paused,
+          link: currlink
+        };
+      }
+    });
+    return res;
+  }
 }
 
 
@@ -103,7 +103,11 @@ async function setvideo(time, ispause){
     args: [time, ispause],
     func: (time, ispause) => {
       let videotag = document.getElementsByTagName('video')[0];
-      videotag.currentTime = time;
+      console.log("curr -> " + videotag.currentTime);
+      console.log("serv -> " + time);
+      if(Math.abs(videotag.currentTime - time) > 0.5){
+        videotag.currentTime = time;
+      }
       if(ispause) videotag.pause();
       else        videotag.play();
     }
@@ -122,7 +126,7 @@ socket.on('modify', async (data) => {
     chrome.tabs.update(currtab[0].id, { url: data.link, active: true}, (currtab) => {
       //ToDo - 업데이트 이후 페이지 로딩까지 기다리는 이벤트핸들러 제작.
 
-      var listener = (tabId, changeInfo, tab) => {
+      /*var listener = (tabId, changeInfo, tab) => {
         if(tabId = currtab.id && changeInfo.status === 'complete'){
           chrome.tabs.onUpdated.removeListener(listener);
           clientAlert("PAGE LOADED DONE");
@@ -135,10 +139,10 @@ socket.on('modify', async (data) => {
                 //alert("ㅎㅇ요");
               }
             }
-          });*/
+          });
         }
       }
-      chrome.tabs.onUpdate.addListener(listener);
+      chrome.tabs.onUpdate.addListener(listener);*/
     });
   }
 });
