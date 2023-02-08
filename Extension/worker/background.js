@@ -74,15 +74,7 @@ async function parse() {
   if(currtab[0].url.includes("laftel")){
     var res = await chrome.scripting.executeScript({
       target: { tabId: currtab[0].id },
-      args: [currtab[0].url],
-      func: (currlink) => {
-        let videotag = document.getElementsByTagName('video')[0];
-        return {
-          time: videotag.currentTime,
-          ispause: videotag.paused,
-          link: currlink
-        };
-      }
+      func: () => { return parseVideo(); }
     });
     return res;
   }
