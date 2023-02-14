@@ -1,5 +1,6 @@
 document.getElementById('makebtn').onclick = () => {
   chrome.runtime.sendMessage({
+    sender:'action',
     message: 'hostroom'
   }, function(ret){
     location.href = '../page/make.html?id='+ret.message.log;
@@ -14,6 +15,7 @@ document.getElementById('joinbtn').onclick = () => {
 async function getMyState(){
   var test = await new Promise(function(resolve){
     chrome.runtime.sendMessage({
+      sender: 'action',
       message: 'getMyState'
     }, function(ret){
       resolve(ret.message);

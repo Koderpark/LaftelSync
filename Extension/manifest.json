@@ -22,7 +22,7 @@
     "content_scripts": [
         {
             "matches": ["*://laftel.net/*"],
-            "js": ["worker/handler.js"]
+            "js": ["worker/innerpage.js"]
         }
     ]
 }

@@ -1,7 +1,7 @@
 importScripts('socket.io.js');
 const socket = io('http://koder.myds.me:20020', {
-  path: '/socket.io',
-  transports: ['websocket']
+    path: '/socket.io',
+    transports: ['websocket']
 });
 
 /*
@@ -12,27 +12,26 @@ const socket = io('http://koder.myds.me:20020', {
  */
 let Id = -1;
 
-
 // 플러그인 백그라운드 유지 //
-const    onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
-function connect() {chrome.runtime.connect({name: 'keepAlive'}).onDisconnect.addListener(connect);}
+const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
+function connect() { chrome.runtime.connect({ name: 'keepAlive' }).onDisconnect.addListener(connect); }
 findTab();
 chrome.runtime.onConnect.addListener(port => {
-  if (port.name === 'keepAlive') {
-    setTimeout(() => port.disconnect(), 250e3);
-    port.onDisconnect.addListener(() => findTab());
-  }
+    if (port.name === 'keepAlive') {
+        setTimeout(() => port.disconnect(), 250e3);
+        port.onDisconnect.addListener(() => findTab());
+    }
 });
 async function findTab(tabs) {
-  if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
-  for (const { id: tabId } of tabs || await chrome.tabs.query({ url: '*://*/*' })) {
-    try {
-      await chrome.scripting.executeScript({ target: { tabId }, func: connect });
-      chrome.tabs.onUpdated.removeListener(onUpdate);
-      return;
-    } catch (e) { }
-  }
-  chrome.tabs.onUpdated.addListener(onUpdate);
+    if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
+    for (const { id: tabId } of tabs || await chrome.tabs.query({ url: '*://*/*' })) {
+        try {
+            await chrome.scripting.executeScript({ target: { tabId }, func: connect });
+            chrome.tabs.onUpdated.removeListener(onUpdate);
+            return;
+        } catch (e) { }
+    }
+    chrome.tabs.onUpdated.addListener(onUpdate);
 }
 
 
@@ -40,26 +39,26 @@ async function findTab(tabs) {
 
 // 브라우저 익스텐션이 라프텔 사이트 내에서만 활성화되도록 허용.
 chrome.runtime.onInstalled.addListener(function () {
-  chrome.action.disable();
-  chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
-    chrome.declarativeContent.onPageChanged.addRules([{
-      conditions: [
-        new chrome.declarativeContent.PageStateMatcher({
-          pageUrl: { hostSuffix: 'laftel.net' },
-        })
-      ],
-      actions: [new chrome.declarativeContent.ShowPageAction()]
-    }]);
-  });
+    chrome.action.disable();
+    chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
+        chrome.declarativeContent.onPageChanged.addRules([{
+            conditions: [
+                new chrome.declarativeContent.PageStateMatcher({
+                    pageUrl: { hostSuffix: 'laftel.net' },
+                })
+            ],
+            actions: [new chrome.declarativeContent.ShowPageAction()]
+        }]);
+    });
 });
 
-async function clientAlert(msg){ // 메시지 출력.
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.scripting.executeScript({
-    target: { tabId: currtab[0].id },
-    args: [msg],
-    func: (msg) => { alert(JSON.stringify(msg)); }
-  });
+async function clientAlert(msg) { // 메시지 출력.
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript({
+        target: { tabId: currtab[0].id },
+        args: [msg],
+        func: (msg) => { alert(JSON.stringify(msg)); }
+    });
 }
 
 
@@ -70,14 +69,14 @@ async function clientAlert(msg){ // 메시지 출력.
  * ispause : 일시정지 여부 (T/F)
  */
 async function parse() {
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-  if(currtab[0].url.includes("laftel")){
-    var res = await chrome.scripting.executeScript({
-      target: { tabId: currtab[0].id },
-      func: () => { return parseVideo(); }
-    });
-    return res;
-  }
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (currtab[0].url.includes("laftel")) {
+        var res = await chrome.scripting.executeScript({
+            target: { tabId: currtab[0].id },
+            func: () => { return parseVideo(); }
+        });
+        return res;
+    }
 }
 
 
@@ -88,56 +87,91 @@ async function parse() {
  * ispause : 일시정지 여부 (T/F)
  */
 
-async function setvideo(time, ispause){
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.scripting.executeScript({
-    target: { tabId: currtab[0].id },
-    args: [time, ispause],
-    func: (time, ispause) => {
-      let videotag = document.getElementsByTagName('video')[0];
-      console.log("curr -> " + videotag.currentTime);
-      console.log("serv -> " + time);
-      if(Math.abs(videotag.currentTime - time) > 0.5){
-        videotag.currentTime = time;
-      }
-      if(ispause) videotag.pause();
-      else        videotag.play();
-    }
-  });
+async function setvideo(time, ispause) {
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript({
+        target: { tabId: currtab[0].id },
+        args: [time, ispause],
+        func: (time, ispause) => {
+            let videotag = document.getElementsByTagName('video')[0];
+            console.log("curr -> " + videotag.currentTime);
+            console.log("serv -> " + time);
+            if (Math.abs(videotag.currentTime - time) > 0.5) {
+                videotag.currentTime = time;
+            }
+            if (ispause) videotag.pause();
+            else videotag.play();
+        }
+    });
 }
 
 
 
 socket.on('modify', async (data) => {
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if(currtab[0].url == data.link){
-    setvideo(data.time, data.ispause);
-  }
-  else{
-    chrome.tabs.update(currtab[0].id, { url: data.link, active: true}, (currtab) => {
-      //ToDo - 업데이트 이후 페이지 로딩까지 기다리는 이벤트핸들러 제작.
-
-      /*var listener = (tabId, changeInfo, tab) => {
-        if(tabId = currtab.id && changeInfo.status === 'complete'){
-          chrome.tabs.onUpdated.removeListener(listener);
-          clientAlert("PAGE LOADED DONE");
-          /*chrome.scripting.executeScript({
+    if (currtab[0].url == data.link) {
+        chrome.scripting.executeScript({
             target: { tabId: currtab[0].id },
-            func: () => {
-              let videotag = document.getElementsByTagName('video')[0];
-              alert(JSON.stringify(videotag));
-              videotag.onloadeddata = () => {
-                //alert("ㅎㅇ요");
+            args: [data],
+            func: (data) => {
+                setVideo(data);
+            }
+        });
+    }
+    else {
+        chrome.tabs.update(currtab[0].id, { url: data.link, active: true }, (currtab) => {
+            //ToDo - 업데이트 이후 페이지 로딩까지 기다리는 이벤트핸들러 제작.
+
+            /*var listener = (tabId, changeInfo, tab) => {
+              if(tabId = currtab.id && changeInfo.status === 'complete'){
+                chrome.tabs.onUpdated.removeListener(listener);
+                clientAlert("PAGE LOADED DONE");
+                /*chrome.scripting.executeScript({
+                  target: { tabId: currtab[0].id },
+                  func: () => {
+                    let videotag = document.getElementsByTagName('video')[0];
+                    alert(JSON.stringify(videotag));
+                    videotag.onloadeddata = () => {
+                      //alert("ㅎㅇ요");
+                    }
+                  }
+                });
               }
             }
-          });
-        }
-      }
-      chrome.tabs.onUpdate.addListener(listener);*/
-    });
-  }
+            chrome.tabs.onUpdate.addListener(listener);*/
+        });
+    }
 });
+
+async function hostRoom() {
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    let ret;
+    if ((currtab[0].url).includes('laftel.net/player')) {
+        try {
+            socket.emit("host");
+            chrome.scripting.executeScript({
+                target: { tabId: currtab[0].id },
+                func: () => { setStateHost(); }
+            })
+            ret = {
+                "status": "success", "log": await new Promise(resolve => {
+                    socket.on('setRoomCode', (data) => { Id = data; resolve(data); });
+                })
+            };
+        }
+        catch (e) {
+            clientAlert('서버와의 통신에 실패했습니다\n잠시뒤 시도해주세요');
+            ret = { "status": "failed", "log": "ConnectionFailed" };
+        }
+    }
+    else {
+        clientAlert('애니메이션이 재생중일때만 파티를 만들수 있습니다');
+        ret = { "status": "failed", "log": "NotWatchingVideo" };
+    }
+    return ret;
+}
+
 
 
 /*
@@ -145,56 +179,53 @@ socket.on('modify', async (data) => {
  * ToDo : 기존 라프텔 재생중이던 창 꺼버리면 될듯?
  */
 socket.on('closed', async () => {
-  clientAlert('호스트와의 연결이 끊겼습니다.');
+    clientAlert('호스트와의 연결이 끊겼습니다.');
 });
 
 socket.on('parse', async () => {
-  const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-  parse().then((arg) => {
-    var ret = {roomid: Id, vid: arg[0].result};
-    socket.emit('propagate', ret);
-  })
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    parse().then((arg) => {
+        var ret = { roomid: Id, vid: arg[0].result };
+        socket.emit('propagate', ret);
+    })
 });
-
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  fromclient(msg,sendResponse);
-  return true;
+    messageHandler(msg, sendResponse);
+    return true;
 });
 
 
-async function fromclient(msg, sendResponse){
-  if (msg.message == 'hostroom') {
-    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-    let ret;
-    if ((currtab[0].url).includes('laftel.net/player')) {
-      try {
-        socket.emit("host");
-        ret = {
-          "status": "success", "log": await new Promise(resolve => {
-            socket.on('setRoomCode', (data) => {Id=data; resolve(data);});
-          })
-        };
-      }
-      catch (e) {
-        clientAlert('서버와의 통신에 실패했습니다\n잠시뒤 시도해주세요');
-        ret =  { "status": "failed", "log": "ConnectionFailed" };
-      }
-    }
-    else {
-      clientAlert('애니메이션이 재생중일때만 파티를 만들수 있습니다');
-      ret =  { "status": "failed", "log": "NotWatchingVideo" };
-    }
-    sendResponse({ message: ret });
-  }
+async function messageHandler(msg, sendResponse) {
+    // From js/*.js
+    if (msg.sender == 'action') {
+        switch (msg.message) {
+            case 'getMyState': {
+                sendResponse({ message: Id });
+                break;
+            }
 
-  if (msg.message == 'joinroom') {
-    Id = 0;
-    socket.emit("join", msg.id);
-    sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
-  }
+            case 'joinroom': {
+                Id = 0;
+                socket.emit("join", msg.id);
+                sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
+                break;
+            }
 
-  if (msg.message == 'getMyState') {
-    sendResponse({ message: Id });
-  }
+            case 'hostroom': {
+                sendResponse({ message: hostRoom() });
+                break;
+            }
+        }
+    }
+
+    // From innerpage.js
+    if (msg.sender == 'innerpage') {
+        switch (msg.message) {
+            case 'updateVideo': {
+                socket.emit('propagate', msg.vidData);
+                break;
+            }
+        }
+    }
 }

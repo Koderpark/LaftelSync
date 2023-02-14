@@ -21,13 +21,6 @@ function GenerateId(){ // 중복없는 방번호 생성함수.
 
 
 io.on("connection", (socket) => {
-    // %임시% 매 초 parse 시키는 부분 //
-    setInterval(() => {
-        roomList.forEach(e => {
-            socket.to("HOST"+e).emit("parse");
-        });
-    }, 10000);
-
 
     /*
      * propagate - Host에서 User으로 영상정보를 전송함.
@@ -38,7 +31,7 @@ io.on("connection", (socket) => {
     socket.on('propagate', (data) => {
         console.log("propagate 명령 수행.");
         console.log(JSON.stringify(data));
-        socket.to("USER"+data.roomid).emit("modify", data.vid);
+        socket.to("USER"+data.roomid).emit("modify", data.vidData);
     });
 
     /*
