@@ -144,32 +144,31 @@ socket.on('modify', async (data) => {
     }
 });
 
-async function hostRoom() {
+async function hostRoom(callback) {
     const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-    let ret;
     if ((currtab[0].url).includes('laftel.net/player')) {
         try {
-            socket.emit("host");
-            chrome.scripting.executeScript({
-                target: { tabId: currtab[0].id },
-                func: () => { setStateHost(); }
-            })
-            ret = {
-                "status": "success", "log": await new Promise(resolve => {
-                    socket.on('setRoomCode', (data) => { Id = data; resolve(data); });
-                })
-            };
+            socket.emit("host", (data) => {
+                chrome.scripting.executeScript({
+                    target: { tabId: currtab[0].id },
+                    func: () => {
+                        document.addEventListener('keydown', parseVideo);
+                        document.addEventListener('click', parseVideo);
+                        setInterval(parseVideo, 10000);
+                    }
+                });
+                callback({ "status": "success", "log": data.roomCode });
+            });
         }
         catch (e) {
             clientAlert('서버와의 통신에 실패했습니다\n잠시뒤 시도해주세요');
-            ret = { "status": "failed", "log": "ConnectionFailed" };
+            callback({ "status": "success", "log": "ConnectionFailed" });
         }
     }
     else {
         clientAlert('애니메이션이 재생중일때만 파티를 만들수 있습니다');
-        ret = { "status": "failed", "log": "NotWatchingVideo" };
+        callback({ "status": "success", "log": "NotWatchingVideo" });
     }
-    return ret;
 }
 
 
@@ -205,7 +204,8 @@ async function messageHandler(msg, sendResponse) {
                 break;
             }
 
-            case 'joinroom': {
+            case 'joinRoom': {
+                clientAlert(msg.id);
                 Id = 0;
                 socket.emit("join", msg.id);
                 sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
@@ -213,7 +213,9 @@ async function messageHandler(msg, sendResponse) {
             }
 
             case 'hostroom': {
-                sendResponse({ message: hostRoom() });
+                hostRoom((data) => {
+                    sendResponse({ message: data });
+                });
                 break;
             }
         }

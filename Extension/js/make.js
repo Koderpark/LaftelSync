@@ -8,6 +8,6 @@ function getParameter(name) {
 window.onload = () => {
     let tmp = document.getElementById('displayId');
     let tmp2 = getParameter('id');
-    console.log(tmp2);
+    //alert(tmp2);
     tmp.innerHTML += tmp2;
 }

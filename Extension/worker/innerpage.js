@@ -1,11 +1,3 @@
-// HOST PART //
-function setStateHost(){
-    document.addEventListener('keydown', parseVideo);
-    document.addEventListener('click', parseVideo);
-    setInterval(parseVideo, 10000);
-}
-
-
 /*
  *  parseVideo - 영상 정보 가져오기 -> [bg] updateVideo 호출
  *

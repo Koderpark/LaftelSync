@@ -45,13 +45,15 @@ io.on("connection", (socket) => {
      * host - Host가 방을 열기를 원함
      * 결과로써 방을 생성하고 Host에게 방번호 전달
      */
-    socket.on('host', () => { // 방 생성후 setRoomCode 이벤트 호출.
+    socket.on('host', (callback) => { // 방 생성후 setRoomCode 이벤트 호출.
         let roomCode = GenerateId();
 
         roomList.push(roomCode);
         socket.join("HOST"+roomCode);
-        
-        socket.emit("setRoomCode", roomCode);
+
+        callback({roomCode});
+
+        //socket.emit("setRoomCode", roomCode);
         console.log(roomCode + " 방 생성.");
         console.log(roomList);
     });

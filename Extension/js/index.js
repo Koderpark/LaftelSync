@@ -4,7 +4,6 @@ document.getElementById('makebtn').onclick = () => {
     message: 'hostroom'
   }, function(ret){
     location.href = '../page/make.html?id='+ret.message.log;
-    //alert(ret.message.log);
   });
 }
 
