@@ -17,12 +17,19 @@
     ],
     "host_permissions": ["<all_urls>"],
     "background": {
-        "service_worker" : "worker/background.js"
+        "service_worker" : [
+            "script/background.js",
+            "script/keepalive.js"
+        ]
     },
     "content_scripts": [
         {
-            "matches": ["*://laftel.net/*"],
-            "js": ["worker/innerpage.js"]
+          "matches": ["https://laftel.net/*"],
+          "js": [
+            "script/inject/host.js",
+            "script/inject/user.js"
+          ],
+          "run_at": "document_idle"
         }
     ]
 }

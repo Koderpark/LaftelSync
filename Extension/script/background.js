@@ -1,4 +1,4 @@
-importScripts('socket.io.js');
+importScripts('../lib/socket.io.js');
 const socket = io('http://koder.myds.me:20020', {
     path: '/socket.io',
     transports: ['websocket']
@@ -11,30 +11,6 @@ const socket = io('http://koder.myds.me:20020', {
  * 다섯자리 숫자인 경우 : Host 역할
  */
 let Id = -1;
-
-// 플러그인 백그라운드 유지 //
-const onUpdate = (tabId, info, tab) => /^https?:/.test(info.url) && findTab([tab]);
-function connect() { chrome.runtime.connect({ name: 'keepAlive' }).onDisconnect.addListener(connect); }
-findTab();
-chrome.runtime.onConnect.addListener(port => {
-    if (port.name === 'keepAlive') {
-        setTimeout(() => port.disconnect(), 250e3);
-        port.onDisconnect.addListener(() => findTab());
-    }
-});
-async function findTab(tabs) {
-    if (chrome.runtime.lastError) { /* tab was closed before setTimeout ran */ }
-    for (const { id: tabId } of tabs || await chrome.tabs.query({ url: '*://*/*' })) {
-        try {
-            await chrome.scripting.executeScript({ target: { tabId }, func: connect });
-            chrome.tabs.onUpdated.removeListener(onUpdate);
-            return;
-        } catch (e) { }
-    }
-    chrome.tabs.onUpdated.addListener(onUpdate);
-}
-
-
 
 
 // 브라우저 익스텐션이 라프텔 사이트 내에서만 활성화되도록 허용.
@@ -60,25 +36,6 @@ async function clientAlert(msg) { // 메시지 출력.
         func: (msg) => { alert(JSON.stringify(msg)); }
     });
 }
-
-
-/*
- * parse - Host가 자신의 영상 상태를 파싱.
- * time : 영상 현재 재생시간
- * link : 영상 현재 링크
- * ispause : 일시정지 여부 (T/F)
- */
-async function parse() {
-    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (currtab[0].url.includes("laftel")) {
-        var res = await chrome.scripting.executeScript({
-            target: { tabId: currtab[0].id },
-            func: () => { return parseVideo(); }
-        });
-        return res;
-    }
-}
-
 
 /*
  * modify - User가 자신의 플레이어를 동기화함.
@@ -144,19 +101,39 @@ socket.on('modify', async (data) => {
     }
 });
 
+async function injectScript(id){
+    await chrome.scripting.registerContentScripts([{
+        id: id,
+        js: ["worker/"+id+".js"],
+        matches: ["*://laftel.net/*"]
+    }])
+
+    let scriptList = await chrome.scripting.getRegisteredContentScripts();
+
+    clientAlert(scriptList);
+    /*
+    if(scriptList.includes()){
+        chrome.scripting.registerContentScripts([{
+            id: id,
+            js: ["worker/"+id+".js"],
+            matches: ["*://laftel.net/*"]
+        }])
+    }
+    else{
+        chrome.scripting.updateContentScripts([{
+            id: id,
+            js: ["worker/"+id+".js"],
+            matches: ["*://laftel.net/*"]
+        }])
+    }*/
+}
+
 async function hostRoom(callback) {
     const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
     if ((currtab[0].url).includes('laftel.net/player')) {
         try {
             socket.emit("host", (data) => {
-                chrome.scripting.executeScript({
-                    target: { tabId: currtab[0].id },
-                    func: () => {
-                        document.addEventListener('keydown', parseVideo);
-                        document.addEventListener('click', parseVideo);
-                        setInterval(parseVideo, 10000);
-                    }
-                });
+                injectScript("injectHost")
                 callback({ "status": "success", "log": data.roomCode });
             });
         }
@@ -183,10 +160,12 @@ socket.on('closed', async () => {
 
 socket.on('parse', async () => {
     const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-    parse().then((arg) => {
-        var ret = { roomid: Id, vid: arg[0].result };
-        socket.emit('propagate', ret);
-    })
+    if (currtab[0].url.includes("laftel")) {
+        await chrome.scripting.executeScript({
+            target: { tabId: currtab[0].id },
+            func: () => { return parseVideo(); }
+        });
+    }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -205,7 +184,7 @@ async function messageHandler(msg, sendResponse) {
             }
 
             case 'joinRoom': {
-                clientAlert(msg.id);
+                //clientAlert(msg.id);
                 Id = 0;
                 socket.emit("join", msg.id);
                 sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
@@ -221,8 +200,8 @@ async function messageHandler(msg, sendResponse) {
         }
     }
 
-    // From innerpage.js
-    if (msg.sender == 'innerpage') {
+    // From injectHost.js
+    if (msg.sender == 'injectHost') {
         switch (msg.message) {
             case 'updateVideo': {
                 socket.emit('propagate', msg.vidData);
