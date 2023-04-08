@@ -29,9 +29,10 @@ io.on("connection", (socket) => {
      * vid/ispause : 일시정지 여부 (T/F)
      */
     socket.on('propagate', (data) => {
-        console.log("propagate 명령 수행.");
+        //console.log("propagate 명령 수행.");
         console.log(JSON.stringify(data));
-        socket.to("USER"+data.roomid).emit("modify", data.vidData);
+        socket.to("USER"+data.roomid).emit("greetings");
+        socket.to("USER"+data.roomid).emit("modify", data);
     });
 
     /*

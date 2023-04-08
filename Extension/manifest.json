@@ -7,7 +7,7 @@
     "action":{
         "default_title": "testing",
         "default_icon":"icon.png",
-        "default_popup":"page/index.html"
+        "default_popup":"popup/main.html"
     },
     "permissions":[
         "declarativeContent",
@@ -17,10 +17,7 @@
     ],
     "host_permissions": ["<all_urls>"],
     "background": {
-        "service_worker" : [
-            "script/background.js",
-            "script/keepalive.js"
-        ]
+        "service_worker" : "script/background.js"
     },
     "content_scripts": [
         {

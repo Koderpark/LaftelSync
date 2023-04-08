@@ -1,8 +1,6 @@
 importScripts('../lib/socket.io.js');
-const socket = io('http://koder.myds.me:20020', {
-    path: '/socket.io',
-    transports: ['websocket']
-});
+importScripts('util.js');
+const socket = io('http://koder.myds.me:20020', { path: '/socket.io', transports: ['websocket'] });
 
 /*
  * Id - 접속 클라이언트가 가지는 고유값
@@ -12,30 +10,8 @@ const socket = io('http://koder.myds.me:20020', {
  */
 let Id = -1;
 
-
-// 브라우저 익스텐션이 라프텔 사이트 내에서만 활성화되도록 허용.
-chrome.runtime.onInstalled.addListener(function () {
-    chrome.action.disable();
-    chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
-        chrome.declarativeContent.onPageChanged.addRules([{
-            conditions: [
-                new chrome.declarativeContent.PageStateMatcher({
-                    pageUrl: { hostSuffix: 'laftel.net' },
-                })
-            ],
-            actions: [new chrome.declarativeContent.ShowPageAction()]
-        }]);
-    });
-});
-
-async function clientAlert(msg) { // 메시지 출력.
-    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.scripting.executeScript({
-        target: { tabId: currtab[0].id },
-        args: [msg],
-        func: (msg) => { alert(JSON.stringify(msg)); }
-    });
-}
+//debug 모드 true/false 스위치. 
+const debug = false;
 
 /*
  * modify - User가 자신의 플레이어를 동기화함.
@@ -64,43 +40,34 @@ async function setvideo(time, ispause) {
 
 
 
-socket.on('modify', async (data) => {
+/*socket.on("modify", async (data) => {
+    
+    console.log(JSON.stringify(data));
+
     const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript({
+        target: { tabId: currtab[0].id },
+        args: [data],
+        func: (data) => {
+            setVideo(data);
+        }
+    });
+});*/
 
-    if (currtab[0].url == data.link) {
-        chrome.scripting.executeScript({
-            target: { tabId: currtab[0].id },
-            args: [data],
-            func: (data) => {
-                setVideo(data);
-            }
-        });
-    }
-    else {
-        chrome.tabs.update(currtab[0].id, { url: data.link, active: true }, (currtab) => {
-            //ToDo - 업데이트 이후 페이지 로딩까지 기다리는 이벤트핸들러 제작.
+socket.on('modify', async (data) => {
+    console.log(JSON.stringify(data));
 
-            /*var listener = (tabId, changeInfo, tab) => {
-              if(tabId = currtab.id && changeInfo.status === 'complete'){
-                chrome.tabs.onUpdated.removeListener(listener);
-                clientAlert("PAGE LOADED DONE");
-                /*chrome.scripting.executeScript({
-                  target: { tabId: currtab[0].id },
-                  func: () => {
-                    let videotag = document.getElementsByTagName('video')[0];
-                    alert(JSON.stringify(videotag));
-                    videotag.onloadeddata = () => {
-                      //alert("ㅎㅇ요");
-                    }
-                  }
-                });
-              }
-            }
-            chrome.tabs.onUpdate.addListener(listener);*/
-        });
-    }
+    const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript({
+        target: { tabId: currtab[0].id },
+        args: [data],
+        func: (data) => {
+            setVideo(data);
+        }
+    });
 });
 
+/*
 async function injectScript(id){
     await chrome.scripting.registerContentScripts([{
         id: id,
@@ -125,15 +92,19 @@ async function injectScript(id){
             js: ["worker/"+id+".js"],
             matches: ["*://laftel.net/*"]
         }])
-    }*/
+    }
 }
-
+*/
 async function hostRoom(callback) {
     const currtab = await chrome.tabs.query({ active: true, currentWindow: true });
     if ((currtab[0].url).includes('laftel.net/player')) {
         try {
             socket.emit("host", (data) => {
-                injectScript("injectHost")
+                chrome.scripting.executeScript({
+                    target: { tabId : currtab[0].id },
+                    func: () => {startEvent();}
+                })
+                Id = data.roomCode;
                 callback({ "status": "success", "log": data.roomCode });
             });
         }
@@ -168,45 +139,65 @@ socket.on('parse', async () => {
     }
 });
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    messageHandler(msg, sendResponse);
-    return true;
-});
 
-
-async function messageHandler(msg, sendResponse) {
-    // From js/*.js
-    if (msg.sender == 'action') {
-        switch (msg.message) {
-            case 'getMyState': {
-                sendResponse({ message: Id });
-                break;
-            }
-
-            case 'joinRoom': {
-                //clientAlert(msg.id);
-                Id = 0;
-                socket.emit("join", msg.id);
-                sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
-                break;
-            }
-
-            case 'hostroom': {
-                hostRoom((data) => {
-                    sendResponse({ message: data });
-                });
-                break;
-            }
+/**
+ * 익스텐션 클릭시 나타나는 팝업창으로부터의 메시지를 처리합니다.
+ * @param {object} msg 받은 메시지
+ * @param {function} sendResponse 결과값을 전송할 콜백함수
+ */
+async function fromPopup(msg,sendResponse){
+    switch (msg.message) {
+        case 'getMyState': {
+            sendResponse({ message: Id });
+            break;
         }
-    }
 
-    // From injectHost.js
-    if (msg.sender == 'injectHost') {
-        switch (msg.message) {
-            case 'updateVideo': {
-                socket.emit('propagate', msg.vidData);
-                break;
-            }
+        case 'joinRoom': {
+            //clientAlert(msg.id);
+            Id = 0;
+            socket.emit("join", msg.id);
+            sendResponse({ message: undefined }); //ToDo - 모종의 결과 보내기.
+            break;
+        }
+
+        case 'hostroom': {
+            clientAlert("curr -> HOST");
+            hostRoom((data) => {
+                sendResponse({ message: data });
+            });
+            break;
         }
     }
 }
+
+/**
+ * 웹페이지 상에 삽입된 host.js로부터의 메시지를 처리합니다.
+ * @param {object} msg 받은 메시지
+ * @param {function} sendResponse 결과값을 전송할 콜백함수
+ */
+async function fromHost(msg,sendResponse){
+    console.log(JSON.stringify(msg));
+    switch (msg.message) {
+        case 'updateVideo': {
+            msg.vidData.roomid = Id;
+            socket.emit('propagate', msg.vidData);
+            break;
+        }
+    }
+}
+
+/**
+ * 웹페이지 상에 삽입된 user.js로부터의 메시지를 처리합니다.
+ * @param {object} msg 받은 메시지
+ * @param {function} sendResponse 결과값을 전송할 콜백함수
+ */
+async function fromUser(msg,sendResponse){
+
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if(msg.sender == 'popup') fromPopup(msg,sendResponse);
+    if(msg.sender == 'host') fromHost(msg,sendResponse);
+    if(msg.sender == 'user') fromUser(msg,sendResponse);
+    return true;
+});

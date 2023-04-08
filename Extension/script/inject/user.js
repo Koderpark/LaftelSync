@@ -9,22 +9,22 @@
  *  speed - 배속
  */
 function setVideo(vidData){
+    const {link, time, ispause, speed} = vidData;
 
-    if(location.href != vidData.link){
-        location.href = vidData.link;
+    if(location.href != link){
+        location.href = link;
     }
 
     let video = document.getElementsByTagName('video')[0];
 
-    if(Math.abs(video.currentTime - vidData.time) > 0.5){
-        video.currentTime = vidData.time;
+    if(Math.abs(video.currentTime - time) > 0.5){
+        video.currentTime = time;
     }
 
-    if(vidData.ispause) video.pause();
-    else                video.play();
+    if(ispause) video.pause();
+    else video.play();
 
-    if(video.playbackRate != vidData.speed){
-        video.playbackRate = vidData.speed;
+    if(video.playbackRate != speed){
+        video.playbackRate = speed;
     }
 }
-
