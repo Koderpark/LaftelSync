@@ -24,7 +24,11 @@
           "matches": ["https://laftel.net/*"],
           "js": [
             "script/inject/host.js",
-            "script/inject/user.js"
+            "script/inject/user.js",
+            "script/inject.js"
+          ],
+          "css": [
+            "script/inject/chat.css"
           ],
           "run_at": "document_idle"
         }

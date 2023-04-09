@@ -38,8 +38,6 @@ async function setvideo(time, ispause) {
     });
 }
 
-
-
 /*socket.on("modify", async (data) => {
     
     console.log(JSON.stringify(data));
@@ -181,6 +179,9 @@ async function fromHost(msg,sendResponse){
         case 'updateVideo': {
             msg.vidData.roomid = Id;
             socket.emit('propagate', msg.vidData);
+            break;
+        }
+        case 'keepAlive': {
             break;
         }
     }

@@ -1,0 +1,9 @@
+.chatdisplay{
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 320px;
+    height: 64px;
+    background-color: black;
+    grid-area: 1 / 2 / 2 / 3;
+}
